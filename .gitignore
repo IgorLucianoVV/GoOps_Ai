@@ -1,0 +1,20 @@
+# Segredos e estado local (banco, chave local, credenciais de demo, lakehouse)
+.env
+var/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+frontend/tsconfig.tsbuildinfo
+
+# Planilhas do case Gocase (dados da empresa e campos pessoais) — fora do repositório por padrão.
+# Sem elas, a plataforma usa automaticamente o cenário sintético "full". Veja data/seed/gocase/README.md.
+data/seed/gocase/**/*.xlsx
+data/tests_tmp*/

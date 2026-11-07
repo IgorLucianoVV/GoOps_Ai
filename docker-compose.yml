@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: goops
+      POSTGRES_USER: goops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goops -d goops"]
+      interval: 5s
+      retries: 10
+    ports: ["127.0.0.1:5432:5432"]   # só acessível da própria máquina
+
+  backend:
+    build: { context: ., dockerfile: infrastructure/docker/backend.Dockerfile }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://goops:${POSTGRES_PASSWORD}@db:5432/goops
+      LAKEHOUSE_PATH: /app/var/lakehouse
+    volumes: [lakehouse:/app/var]
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["8000:8000"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/frontend.Dockerfile
+      args: { NEXT_PUBLIC_API_URL: "/api", API_INTERNAL_URL: "http://backend:8000" }
+    depends_on: [backend]
+    ports: ["3000:3000"]
+
+volumes:
+  pgdata:
+  lakehouse:

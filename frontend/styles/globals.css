@@ -1,0 +1,135 @@
+/* GoOps AI — Design tokens
+ * Superfícies NEUTRAS; cor da marca usada com parcimônia. Paleta inspirada em cores públicas da Gocase (Brandfetch):
+ * azul #005BAA (ação), navy #010C76 (marca), primrose #E9ED9A e coral #F37053 / pêssego #FFC67E (acentos).
+ * Uso interno/demonstrativo: logotipos e demais elementos de identidade NÃO são reproduzidos (exigem autorização da marca).
+ * Todos os pares texto/fundo foram verificados para WCAG 2.2 AA (texto ≥ 4.5:1) — ver docs/architecture/DESIGN_SYSTEM.md.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --c-ink-950: 246 246 243;
+  --c-ink-900: 255 255 255;
+  --c-ink-850: 250 250 249;
+  --c-ink-800: 241 241 238;
+  --c-ink-700: 228 228 224;
+  --c-ink-600: 212 212 207;
+  --c-white: 24 24 27;
+  --c-slate-100: 31 31 35;
+  --c-slate-200: 42 42 47;
+  --c-slate-300: 63 63 70;
+  --c-slate-400: 82 82 91;
+  --c-slate-500: 99 99 107;
+  --c-slate-600: 139 139 147;
+  --c-slate-700: 180 180 187;
+  --c-brand-300: 90 155 219;
+  --c-brand-400: 10 108 194;
+  --c-brand-500: 10 108 194;
+  --c-brand-600: 0 91 170;
+  --c-brand-700: 0 74 140;
+  --c-emerald-200: 11 94 60;
+  --c-emerald-300: 14 122 78;
+  --c-emerald-500: 22 160 106;
+  --c-emerald-700: 14 122 78;
+  --c-emerald-950: 231 247 239;
+  --c-rose-200: 142 27 42;
+  --c-rose-300: 180 35 53;
+  --c-rose-500: 224 68 90;
+  --c-rose-700: 180 35 53;
+  --c-rose-950: 253 236 239;
+  --c-amber-200: 107 70 0;
+  --c-amber-300: 138 90 0;
+  --c-amber-500: 224 161 0;
+  --c-amber-600: 176 125 0;
+  --c-amber-950: 255 246 221;
+  --c-sky-300: 0 89 168;
+  --c-sky-500: 30 136 229;
+  --c-violet-300: 91 63 184;
+  --c-violet-500: 123 92 224;
+  --c-teal-300: 11 116 114;
+  --c-teal-500: 20 163 159;
+  --c-navy-950: 1 8 69;
+  --c-navy-900: 1 12 118;
+  --c-navy-800: 10 26 143;
+  --c-navy-700: 26 42 160;
+  --c-navy-600: 45 61 176;
+  --c-accent-300: 243 245 198;
+  --c-accent-400: 233 237 154;
+  --c-accent-500: 214 220 107;
+  --c-coral-300: 181 67 42;
+  --c-coral-400: 243 112 83;
+  --c-coral-500: 226 88 58;
+  --c-peach-400: 255 198 126;
+  --radius: 12px;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --c-coral-300: 255 156 131;
+  --c-ink-950: 17 17 19;
+  --c-ink-900: 26 26 29;
+  --c-ink-850: 31 31 35;
+  --c-ink-800: 38 38 43;
+  --c-ink-700: 50 50 56;
+  --c-ink-600: 67 67 74;
+  --c-white: 250 250 250;
+  --c-slate-100: 244 244 245;
+  --c-slate-200: 228 228 231;
+  --c-slate-300: 212 212 216;
+  --c-slate-400: 161 161 170;
+  --c-slate-500: 140 140 150;
+  --c-slate-600: 107 107 116;
+  --c-slate-700: 82 82 91;
+  --c-brand-300: 169 207 247;
+  --c-brand-400: 125 183 242;
+  --c-brand-500: 58 142 224;
+  --c-brand-600: 28 107 191;
+  --c-brand-700: 21 90 159;
+  --c-emerald-200: 166 240 203;
+  --c-emerald-300: 95 216 162;
+  --c-emerald-500: 43 181 122;
+  --c-emerald-700: 31 138 92;
+  --c-emerald-950: 6 42 30;
+  --c-rose-200: 255 194 202;
+  --c-rose-300: 255 138 152;
+  --c-rose-500: 240 84 106;
+  --c-rose-700: 184 52 74;
+  --c-rose-950: 58 11 22;
+  --c-amber-200: 255 227 163;
+  --c-amber-300: 247 199 92;
+  --c-amber-500: 229 168 42;
+  --c-amber-600: 194 138 18;
+  --c-amber-950: 46 34 5;
+  --c-sky-300: 125 183 242;
+  --c-sky-500: 58 142 224;
+  --c-violet-300: 185 166 255;
+  --c-violet-500: 140 108 240;
+  --c-teal-300: 94 214 208;
+  --c-teal-500: 35 179 173;
+}
+
+html, body { @apply bg-ink-950 text-slate-200 antialiased; font-feature-settings: "cv11", "ss01"; }
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--c-ink-600)) transparent; }
+.card { @apply rounded-xl border border-ink-700 bg-ink-900 shadow-[0_1px_2px_rgba(24,24,27,0.05)]; }
+.label { @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500; }
+.input { @apply rounded-lg border border-ink-600 bg-ink-850 px-3 py-1.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 disabled:opacity-60; }
+.btn { @apply inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50; }
+.btn-primary { @apply btn bg-brand-600 text-[#FFFFFF] shadow-sm hover:bg-brand-700; }
+.btn-ghost { @apply btn border border-ink-600 bg-ink-900 text-slate-200 hover:bg-ink-800; }
+.btn-danger { @apply btn border border-rose-700/50 bg-ink-900 text-rose-300 hover:bg-rose-950; }
+.btn-accent { @apply btn bg-accent-400 text-navy-900 hover:bg-accent-500; }
+.table th { @apply px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500; }
+.table td { @apply px-3 py-2 align-top text-sm; }
+.table tbody tr { @apply border-t border-ink-700 hover:bg-ink-800/60; }
+.skeleton { @apply animate-pulse rounded-md bg-ink-800; }
+:focus-visible { outline: 3px solid rgb(var(--c-brand-500)); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.geo-bg {
+  background-color: #18181B;
+  background-image:
+    radial-gradient(circle at 14% 20%, rgb(var(--c-accent-400) / 0.9) 0 64px, transparent 65px),
+    radial-gradient(circle at 86% 78%, rgb(var(--c-coral-400) / 0.85) 0 120px, transparent 121px),
+    radial-gradient(circle at 70% 18%, rgb(var(--c-peach-400) / 0.55) 0 36px, transparent 37px),
+    linear-gradient(135deg, transparent 0 66%, rgb(var(--c-brand-600) / 0.35) 66% 100%);
+}

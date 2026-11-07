@@ -1,0 +1,17 @@
+# Runtime (versões fixadas e compatíveis entre si — Python 3.11)
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+pandas==2.2.3
+numpy==2.1.3
+pyarrow==18.1.0
+requests==2.32.3
+openpyxl==3.1.5
+psycopg[binary]==3.2.3
+# IA: orquestração LangGraph + provedores (LangChain). Faixas compatíveis com langchain-core 0.3.x
+langgraph>=0.4,<0.7
+langchain-core>=0.3.60,<0.4
+langchain-anthropic>=0.3.10,<0.4
+langchain-openai>=0.3.10,<0.4
+langchain-google-genai>=2.1,<3
+langchain-ollama>=0.3,<0.4
