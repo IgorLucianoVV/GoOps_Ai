@@ -132,6 +132,37 @@ class EnabledBody(BaseModel):
     enabled: bool
 
 
+class ValidationRun(BaseModel):
+    with_ai: bool = False
+
+
+@router.get("/agents/validation", tags=["agents"])
+def agents_validation(p: Principal = Depends(require("agents:read"))):
+    from agents.walkthrough import latest
+    return ok(latest())
+
+
+@router.post("/agents/validation/run", tags=["agents"])
+def agents_validation_run(body: ValidationRun = ValidationRun(), p: Principal = Depends(require("agents:execute")),
+                          db: Database = Depends(db_dep)):
+    """Validação ponta a ponta em AMBIENTE ISOLADO (processo separado, banco e Lakehouse temporários)."""
+    import subprocess
+    import sys
+    from goops_core.audit import record_audit
+    from agents.walkthrough import ROOT, latest
+    cmd = [sys.executable, str(ROOT / "manage.py"), "validate-agents", "--quiet"] + (["--with-ai"] if body.with_ai else [])
+    try:
+        proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True, timeout=280)
+    except subprocess.TimeoutExpired:
+        raise ValidationError("A validação passou de 280 s e foi interrompida. Rode pelo terminal: python manage.py validate-agents")
+    report = latest()
+    if report is None:
+        raise ValidationError("A validação não gerou relatório: " + (proc.stderr or proc.stdout or "")[-300:])
+    record_audit(db, p, "agent.validation_run", "agents", "walkthrough",
+                 {"passed": report["summary"]["passed"], "cases": report["summary"]["cases"], "with_ai": body.with_ai})
+    return ok(report)
+
+
 # Rotas específicas ANTES de /agents/{agent_key} (o FastAPI casa na ordem de declaração).
 @router.post("/agents/custom/test", tags=["agents"])
 def custom_agent_test(body: CustomAgentTest, p: Principal = Depends(require("agents:execute")), db: Database = Depends(db_dep),
@@ -256,7 +287,9 @@ def agent_detail(agent_key: str, p: Principal = Depends(require("agents:read")),
     if agent_key not in AGENT_CATALOG:
         raise NotFound("Agente não encontrado.")
     stats = next(a for a in agent_stats(db) if a["key"] == agent_key)
+    from agents.decisions import decision_logic, recent_decisions
     return ok({**stats, "profile": AGENT_PROFILES.get(agent_key, {}), "instructions": list_slots(db, agent_key),
+               "decision_logic": decision_logic(db, agent_key), "recent_decisions": recent_decisions(db, agent_key),
                "recent_runs": list_agent_runs(db, agent_key, 20)})
 
 

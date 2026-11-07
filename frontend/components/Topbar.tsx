@@ -3,6 +3,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Menu, Moon, Search, Sparkles, Sun } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
+import { PresentationButton } from "@/features/presentation/PresentationMode";
 import { breadcrumbFor } from "./nav";
 
 /** Barra superior: onde estou (breadcrumb — H1/H6), busca rápida (H7) e preferência de tema. */
@@ -24,6 +25,7 @@ export default function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSea
       </button>
       <button onClick={onSearch} className="btn-ghost md:hidden" aria-label="Buscar"><Search size={16} aria-hidden /></button>
       {pathname !== "/ask" && <Link href="/ask" className="btn-accent hidden sm:inline-flex"><Sparkles size={15} aria-hidden /> Perguntar</Link>}
+      <PresentationButton />
       <button onClick={toggle} className="btn-ghost" aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title="Alternar tema">
         {theme === "dark" ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}
       </button>

@@ -121,3 +121,8 @@ política de aprovação. Sem modelo, há resumo determinístico e nenhum alerta
 número fora das evidências). Agentes personalizados têm teste sem efeito colateral, critérios de aceite e rastro passo a
 passo (padrão Decagon Trace View / Intercom Simulations). Publicar sem teste é permitido, mas exige confirmação e fica
 registrado na auditoria.
+
+**ADR-32 — Transparência verificável dos agentes.** Cada agente expõe como decide (regras, fórmulas e parâmetros em
+vigor) e as decisões recentes. Uma validação ponta a ponta reproduzível recalcula cada decisão de forma independente
+num ambiente isolado com dados gerados, inclusive casos-limite sob medida; roda pela tela, pelo terminal e na suíte de
+testes. O relatório é a evidência para a banca de que as regras do código são as mesmas que a tela descreve.

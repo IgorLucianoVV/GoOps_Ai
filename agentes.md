@@ -48,6 +48,8 @@ Arquivos-chave do Atendimento:
 - `data_platform/support/` — gerador sintético e pipeline de contatos/mensagens.
 - `backend/app/api/routes/support.py` — rotas `/support/*` e `/team/*`.
 - `frontend/app/(app)/atendimento/` (visão, caixa) e `frontend/app/(app)/canal/`; componentes em `frontend/features/support/`.
+- `frontend/features/presentation/` — **modo apresentação** (tour do pitch): roteiro em `steps.ts`, motor em
+  `PresentationMode.tsx`, eventos em `events.ts`. Elementos destacados usam `data-tour="..."` (ou `<Card tour=...>`).
 
 Comandos:
 
@@ -56,6 +58,7 @@ python manage.py init            # migrações + catálogos + usuários demo (ro
 python manage.py demo-load --scenario full   # recria ambiente sintético completo
 python manage.py pipeline        # Fonte → Bronze → Silver → Gold → Semântica
 python manage.py test            # pytest — precisa passar antes de entregar
+python manage.py validate-agents # validação ponta a ponta dos agentes (ambiente isolado + relatório)
 uvicorn backend.app.main:app --reload --port 8000
 cd frontend && npm run dev       # npm run build precisa compilar sem erro
 ```
@@ -200,6 +203,8 @@ Tudo registrado: agent_runs, workflow_runs, llm_calls, audit, team_messages
     prompt com `prompt_for(db, slot)`. Regra de que o código depende (formato, sem números novos) vai em `fixed`, nunca
     no texto editável. Inclua uma evidência de exemplo em `SAMPLES` para o botão "Testar".
 11b. Execução de teste nunca grava efeito (incidente, ação, mensagem): use `dry_run=True` em `_run_llm_task`.
+11c. Mudou uma regra de decisão? Atualize `agents/decisions.py` (o que a tela mostra) e o caso correspondente em
+    `agents/walkthrough.py` (o recálculo independente); `validate-agents` precisa terminar sem reprovação.
 
 **Segredos e dados**
 11. Tokens (AI Proxy, Telegram, Slack, APIs) **nunca** em código versionado, log, print, resposta ou teste. Use o
@@ -213,6 +218,9 @@ Tudo registrado: agent_runs, workflow_runs, llm_calls, audit, team_messages
     `@/components/ui` e ícones `lucide-react`. Tema claro/escuro e WCAG 2.2 AA (aria-label, contraste, foco).
 16. Hooks do React sempre antes de qualquer `return` antecipado. Booleanos numéricos com `!!` (evita renderizar "0").
 17. Menos é mais: uma ação por botão, sem botões duplicados (ver regra do "Encerrar" em 3.1).
+17a. Mudou uma tela do roteiro do pitch? Mantenha o `data-tour` do trecho destacado e confira o tour (botão
+    **Apresentar**). Ações do tour só rodam por clique, usam as mesmas rotas e a mesma política de aprovação; números
+    do cartão vêm da API (`live`), nunca escritos à mão.
 
 **Qualidade e entrega**
 18. Adicione/atualize testes em `backend/tests/` para regra nova. `python manage.py test` e `npm run build` precisam
@@ -228,3 +236,102 @@ Tudo registrado: agent_runs, workflow_runs, llm_calls, audit, team_messages
 - [ ] Nenhum segredo no código/log; dado sintético rotulado
 - [ ] UI em pt-BR, design system, acessível, sem botão duplicado
 - [ ] Testes e build passando; docs atualizadas
+
+---
+
+## 6. Histórico de mudanças — sessão de 07/11/2026 (área “Agentes de IA”)
+
+Registro para outros agentes e pessoas entenderem **o que mudou, por quê e como verificar**. A sessão foi conduzida com
+um assistente de IA (Claude) sobre o repositório, com as decisões de produto tomadas pelo Igor (dono do projeto).
+
+### 6.1 Contexto e pedidos (em ordem)
+1. **Entender o projeto** antes de agir (leitura de README, este arquivo, ADRs e docs de arquitetura).
+2. **Agentes de IA**: ver o que cada agente faz, **editar as instruções** e **criar agentes** para funções específicas.
+   Decisões do Igor (perguntadas antes de construir):
+   - editar **só a parte de IA** dos agentes nativos (narrativas, resumos, respostas, instrução do assistente);
+     regras, limiares, números, catálogo de ações e aprovações continuam no núcleo determinístico;
+   - agente novo = **LLM com missão em texto + ferramentas governadas** (somente leitura) + saída configurável;
+   - **tudo numa tela só** (Agentes de IA), mantendo os agentes de setor também visíveis em Setores.
+3. **Pesquisa de mercado** (Salesforce Agentforce, Microsoft Copilot Studio, OpenAI AgentKit, Intercom Fin, Sierra,
+   Decagon, Glean, Zendesk, ServiceNow AI Control Tower) e implementação das melhorias **mais pertinentes para a
+   apresentação**: ciclo editar → testar → publicar, teste sem efeito colateral, critérios de aceite, rastro passo a
+   passo, saúde dos agentes, abas e filtros.
+4. **Validação completa dos fluxos** dos agentes, **gerando dados** quando faltassem, e **transparência** sobre o que
+   cada agente faz e como decide.
+
+### 6.2 O que foi construído
+
+**Instruções de IA editáveis (agentes nativos)** — `agents/instructions.py`, migrações `0011`, `0012`
+- Cada tarefa de IA é um *slot* com **instrução editável** + **regras fixas** (não editáveis, sempre anexadas). O
+  `SYSTEM_GUARDRAIL` do roteador e os guardas de saída (ex.: sem números novos) continuam no código.
+- Slots: `summarize_incident`, `explain_metric` (Supervisor) · `investigation_narrative`, `classify_comment`
+  (Investigação) · `resolution_plan_narrative` (Resolução) · `support_classify` (Jev), `support_reply`,
+  `support_summary` (Atendimento) · `ask_question` (instrução de sistema do “Pergunte ao GoOps”), `daily_briefing`,
+  `sector_summary` (Assistente). Monitor e Validação não usam IA.
+- Fluxo **rascunho → testar → publicar** (`agent_instruction_drafts`): rascunho não afeta agentes; “Testar” usa
+  evidências de exemplo (`SAMPLES`), mostra o prompt exato e verificações automáticas (ex.: número fora das
+  evidências); publicar cria versão (`agent_instructions`), registra se foi testada; histórico, comparação e restauração.
+- Permissão nova `agents:configure` (admin e Responsável pelos dados).
+
+**Agentes com instruções (`llm_task`)** — `agents/custom.py`
+- Missão em texto, ferramentas escolhidas entre as do Toolbox do assistente (outras são recusadas e bloqueadas),
+  saída `report | team_channel | incident | propose_action`, modelo, frequência, **critérios de aceite** (`checks`).
+- Reusa o motor do “Pergunte ao GoOps” (`_run_llm` ganhou `system/specs/agent_key/task`). A IA só redige e marca
+  `ALERTA: SIM|NÃO`; **o código** abre o incidente (1 por dia por agente) e propõe a ação, que segue a política.
+- Sem modelo/erro/números sem consulta ⇒ resumo determinístico e **nenhum alerta**.
+- **Teste sem efeito colateral** (`test_agent`): mesma execução sem gravar incidente, ação ou mensagem; runs como
+  `custom-test:<chave>`. **Rastro** (`run_trace`): instrução → chamadas ao modelo ↔ ferramentas → decisão → ações.
+- Pausar/retomar (`set_enabled`) e **saúde 7 dias** (`health_7d`: execuções, falhas, % sem IA, alertas, custo).
+
+**Transparência e validação**
+- `agents/decisions.py`: “Como decide” por agente — passos/fórmulas, **parâmetros em vigor** (lidos da configuração),
+  quando vai para pessoa, uso de IA, ações do catálogo e **decisões recentes reais**.
+- `agents/walkthrough.py` + `python manage.py validate-agents [--with-ai]`: ambiente **isolado** (banco e Lakehouse
+  temporários), gera o cenário `full` e casos sob medida, executa os fluxos e **recalcula cada decisão de forma
+  independente** (33 verificações). Relatório em `var/validation/latest.json|.md`; tela `/agents/validacao`
+  (roda em processo separado); teste `backend/tests/test_walkthrough.py`.
+
+**Frontend** (`frontend/app/(app)/agents/*`, `frontend/features/agents/*`)
+- Lista com busca, filtros (tipo, setor, situação), saúde, rascunhos e pausar no card.
+- Agente nativo em abas: Visão geral · **Como decide** · Instruções de IA · Atividade.
+- Agente personalizado em abas: Visão geral · Testar · Atividade (com passo a passo); formulário com exemplos,
+  critérios de aceite e “Testar antes de salvar”. Página de validação ponta a ponta.
+
+**API nova** (todas antes de `/agents/{agent_key}` no `ops.py`, por causa da ordem de rotas do FastAPI):
+`/agents/custom[/options|/test|/{key}|/{key}/run|/{key}/delete|/{key}/enabled]`,
+`/agents/instructions/{slot}[/draft|/draft/discard|/test|/publish|/reset|/restore|/history]`,
+`/agents/validation` e `/agents/validation/run`. Detalhe do agente devolve `profile`, `instructions`,
+`decision_logic`, `recent_decisions` e `health`.
+
+### 6.3 Decisões e por quê
+- **Duas camadas nas instruções** (editável + fixa): permite ajustar tom/foco sem abrir brecha para números inventados
+  ou formato quebrado (ADR-30).
+- **Nada vai ao ar sem teste visível**: rascunho e teste antes de publicar, como em Glean/Zendesk/OpenAI (ADR-31).
+  Publicar sem teste é permitido, mas pede confirmação e fica na auditoria.
+- **IA não abre incidente nem propõe ação**: ela só sinaliza; o código decide e a política de aprovação vale.
+- **Teste de agente nunca grava efeito**; testes não contam na saúde do agente.
+- **Validação reprodutível e isolada** como evidência de que o que a tela descreve é o que o código faz (ADR-32).
+- Sem execução real e sem afrouxar aprovação humana: regras da seção 3 mantidas.
+
+### 6.4 Achados da validação (corrigidos)
+1. Ação do atendimento **dispensada de aprovação** (ex.: chamado na transportadora) proposta manualmente ficava
+   “aprovada” e **nunca era executada** → `agents/support/service.py::propose_action` agora executa com o Agente de
+   Atendimento (simulado), como na triagem automática.
+2. Agente de setor “Causas da variação de contatos” decompunha uma **contagem** e sempre era ignorado → semente em
+   `data_platform/support/pipeline.py` passou a usar `SUP_TAXA_RECONTATO` (bancos antigos são reparados ao semear) e
+   `validate_config` recusa `driver_analysis` sobre somas/contagens.
+
+### 6.5 Como verificar
+```bash
+python manage.py init                 # aplica 0011 e 0012
+python manage.py test                 # 129 passam (inclui validação ponta a ponta)
+python manage.py validate-agents      # 33/33 sem modelo; use --with-ai com Claude/AI Proxy configurado
+cd frontend && npm run build
+```
+Arquivos de teste novos/alterados: `backend/tests/test_agent_config.py`, `test_api_http.py`, `test_walkthrough.py`.
+
+### 6.6 Pendências conhecidas
+- Caminho **com IA real** foi validado só com modelo simulado nos testes; rodar `validate-agents --with-ai` antes da demo.
+- Não implementados (baixo peso para a demo): gatilhos por evento, transformar execução em caso de teste, regressão
+  agendada, ajuda da IA para escrever a missão.
+- Slots sem prévia completa: `support_classify` (Jev) mostra só a instrução no teste.

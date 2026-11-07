@@ -250,3 +250,35 @@ def test_dry_run_has_no_side_effects_and_shows_trace_and_checks():
     from goops_core.util import jload
     run["output"] = jload(run["output"], {})
     assert any(s["kind"] == "fallback" for s in run_trace(env.db, run))
+
+
+# ------------------------------------------------------------------ transparência e achados da validação
+def test_decision_logic_uses_live_parameters_and_lists_recent_decisions():
+    from agents.decisions import decision_logic, recent_decisions
+    from agents.supervisor.agent import Supervisor
+    from goops_core.runtime_config import get_section
+    env = make_env("full", shared=False)
+    update_section(env.db, ADMIN, "monitor", {**get_section(env.db, "monitor"), "nps_drop_points": 9.5})
+    mon = decision_logic(env.db, "monitor")
+    assert any(p["label"].startswith("Queda de NPS") and p["value"] == 9.5 for p in mon["params"])
+    assert decision_logic(env.db, "support")["human"] and decision_logic(env.db, "resolution")["actions"]
+    Supervisor(env.db, env.lake).run_monitoring_cycle(ADMIN, auto_investigate=True)
+    assert any("limiar 9.5" in d["decision"] for d in recent_decisions(env.db, "monitor"))
+    assert recent_decisions(env.db, "investigation")[0]["decision"].startswith("hipótese principal")
+    assert "automático" in recent_decisions(env.db, "support")[0]["decision"] or "pessoa" in recent_decisions(env.db, "support")[0]["decision"]
+
+
+def test_manual_no_approval_support_action_is_executed():
+    from agents.support import service
+    from agents.supervisor.agent import Supervisor  # noqa: F401 - registra simuladores
+    env = make_env("full", shared=False)
+    k = env.db.fetchone("SELECT id FROM support_contacts WHERE order_id IS NOT NULL AND intent = 'nao_recebido' LIMIT 1")
+    op = service.propose_action(env.db, user("support_agent", ["atendimento"], "USR-att"), k["id"], "support_carrier_ticket")
+    assert not op["requires_approval"] and op["status"] == "executed"
+
+
+def test_driver_analysis_rejects_count_metrics():
+    env = make_env("full", shared=False)
+    assert_raises(ValidationError, save_agent, env.db, ADMIN, key="atendimento_causas_x", domain="atendimento", name="x",
+                  template="driver_analysis", config={"metric_key": "SUP_CONTATOS", "dimensions": ["channel"], "min_n": 10},
+                  interval_minutes=None)

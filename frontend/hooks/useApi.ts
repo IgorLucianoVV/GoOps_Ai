@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, type Query } from "@/services/api";
+import { REFRESH_EVENT } from "@/features/presentation/events";
 import { useToast } from "./useToast";
 
 export interface ActionOptions { success?: string; successDescription?: string; silentError?: boolean; }
@@ -29,6 +30,11 @@ export function useApi<T = any>(path: string | null, query?: Query) {
   }, [path, key]);
 
   useEffect(() => { load(); }, [load]);
+  // recarrega quando outra parte da tela muda dados (ex.: ação do modo apresentação)
+  useEffect(() => {
+    window.addEventListener(REFRESH_EVENT, load);
+    return () => window.removeEventListener(REFRESH_EVENT, load);
+  }, [load]);
   return { data, meta, error, loading, reload: load };
 }
 

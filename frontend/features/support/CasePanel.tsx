@@ -2,6 +2,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { useState } from "react";
+import { useTourTab } from "@/features/presentation/events";
 import { RefreshCw, ShieldAlert, User as UserIcon } from "lucide-react";
 import { fmt } from "@/components/labels";
 import { Badge, InfoTip } from "@/components/ui";
@@ -23,6 +24,7 @@ export default function CasePanel({ c, intents, canWrite, busy, onPropose, onUpd
   const open = ["pending_human", "pending_approval", "awaiting_customer"].includes(c.status);
   const hasVer = c.veracity_label && c.veracity_label !== "nao_aplicavel";
   const pendingOps = (c.operations || []).filter((o: any) => o.status === "pending_approval").length;
+  useTourTab(setTab, ["resumo", "veracidade", "pedido", "acoes"]);
   const tabs = [["resumo", "Resumo"], ...(hasVer ? [["veracidade", "Veracidade"]] : []), ["pedido", "Pedido"], ["acoes", `Ações${pendingOps ? ` (${pendingOps})` : ""}`]];
 
   return (

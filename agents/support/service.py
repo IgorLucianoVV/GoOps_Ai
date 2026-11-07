@@ -495,6 +495,11 @@ def propose_action(db: Database, actor: Principal, contact_id: str, action_type:
     _event(db, contact_id, actor, "action_proposed", msg, {"operation_id": op["id"]})
     from .conversations import system_message
     system_message(db, contact_id, msg)
+    if op["status"] == "approved":
+        # Dispensada de aprovação pela política (sem área crítica): o Agente de Atendimento executa na hora (simulado),
+        # como na triagem automática. Antes ficava "aprovada" sem execução (achado da validação ponta a ponta).
+        from goops_core.permissions import agent_principal
+        op = execute_operation(db, agent_principal("support"), op["id"])
     return op
 
 

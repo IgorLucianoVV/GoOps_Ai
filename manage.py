@@ -6,6 +6,7 @@
   python manage.py monitor [--no-investigate] # ciclo do Supervisor (Monitor + workflows)
   python manage.py status                     # resumo do ambiente
   python manage.py test                       # testes (pytest se disponível, senão executor stdlib)
+  python manage.py validate-agents [--with-ai] # validação ponta a ponta dos agentes (ambiente isolado + relatório)
 """
 from __future__ import annotations
 
@@ -33,7 +34,29 @@ def main() -> int:
     m.add_argument("--no-investigate", action="store_true")
     sub.add_parser("status")
     sub.add_parser("test")
+    v = sub.add_parser("validate-agents")
+    v.add_argument("--with-ai", action="store_true", help="usa a configuração de IA (modelos e chaves) da aplicação")
+    v.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
+
+    if args.cmd == "validate-agents":
+        # roda num banco e Lakehouse TEMPORÁRIOS: não altera os dados da aplicação
+        from goops_core.config import get_settings
+        from goops_core.logging_setup import setup_logging
+        from agents.walkthrough import run_walkthrough, save
+        setup_logging("ERROR")
+        src = get_settings().database_url if args.with_ai else None
+        report = run_walkthrough(copy_ai_from=src, progress=(lambda m: None) if args.quiet else print)
+        paths = save(report)
+        s = report["summary"]
+        if not args.quiet:
+            for a in report["agents"]:
+                print(f"  {'OK ' if not a['failed'] else 'FALHA'} {a['name']}: {a['passed']}/{a['passed'] + a['failed']}")
+                for c in a["cases"]:
+                    if c["ok"] is False:
+                        print(f"      ✗ {c['title']}")
+        print(json.dumps({"aprovadas": s["passed"], "verificacoes": s["cases"], "relatorio": paths}, ensure_ascii=False))
+        return 0 if s["failed"] == 0 else 1
 
     if args.cmd == "test":
         try:

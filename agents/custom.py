@@ -123,6 +123,8 @@ def validate_config(db: Database, template: str, domain: str, cfg: Dict[str, Any
         m = _metric_ok(db, str(cfg.get("metric_key") or ""), domain)
         if "month" not in m["dimensions"]:
             raise ValidationError("A métrica precisa da dimensão 'month'.")
+        if (m.get("formula_definition") or {}).get("type") not in ("mean", "rate", "nps", "median", "percentile"):
+            raise ValidationError("Investigação de causas só funciona com médias, taxas ou NPS (não com somas/contagens).")
         dims = [d for d in (cfg.get("dimensions") or []) if d in m["dimensions"] and d != "month"][:5]
         if not dims:
             raise ValidationError("Escolha ao menos uma dimensão da métrica para investigar.")

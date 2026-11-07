@@ -51,7 +51,7 @@ function ShiftCard({ onDone, canRun }: { onDone: () => void; canRun: boolean }) 
     ["Alertas de SLA ao time", o.sla_alerts], ["Cobranças de aprovação", o.approval_reminders], ["Incidentes abertos (equipe de agentes)", (o.incidents || []).length],
   ] : [];
   return (
-    <Card className="mb-5" title={<span className="inline-flex items-center gap-1.5"><Bot size={15} /> Turno do Agente de Atendimento</span>}
+    <Card className="mb-5" tour="shift" title={<span className="inline-flex items-center gap-1.5"><Bot size={15} /> Turno do Agente de Atendimento</span>}
       subtitle="O que o agente faz sozinho a cada rodada: processa a caixa, lembra e encerra por inatividade, avisa o time quando o SLA estoura, cobra aprovações, abre incidente e chama os agentes de Investigação e Resolução quando uma transportadora concentra reclamações, e manda o resumo do dia no Canal do time."
       actions={canRun && <div className="flex flex-wrap gap-2">
         <button className="btn-primary" disabled={act.busy} onClick={() => run(0)}><Play size={14} /> Rodar turno agora</button>
@@ -78,7 +78,7 @@ function SupportOverview({ d }: { d: any }) {
   const claims = d.claims.by_veracity || {};
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6" data-tour="support-kpis">
         <Kpi label="Atendimentos" value={fmt.num(d.total)} hint={`${fmt.num(d.conversations)} conversas · ${fmt.num(d.inbound_messages)} mensagens de clientes`}
           info="Cada conversa (cliente + canal) reúne vários atendimentos; mensagens do cliente com o atendimento aberto continuam o mesmo atendimento." />
         <Kpi label="Resolvidos sem pessoa" value={fmt.pct(d.automation.auto_rate)} tone="good" hint={`${fmt.num(d.automation.auto)} contatos`}
@@ -93,7 +93,7 @@ function SupportOverview({ d }: { d: any }) {
           info="Mediana do tempo até a primeira resposta. Tempos de contatos antigos da demo são simulados." />
       </div>
 
-      <Card title="Como o GoOps responde aos desafios do atendimento" subtitle="Cada ponto do desafio e onde ele aparece na plataforma.">
+      <Card tour="support-challenges" title="Como o GoOps responde aos desafios do atendimento" subtitle="Cada ponto do desafio e onde ele aparece na plataforma.">
         <div className="grid gap-3 md:grid-cols-5">
           {CHALLENGES.map((c) => (
             <div key={c.title} className="rounded-lg border border-ink-700 bg-ink-850 p-3">

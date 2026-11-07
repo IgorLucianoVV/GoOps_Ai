@@ -35,7 +35,7 @@ export default function TeamChannelPage() {
         </>} />
       <ErrorBox error={error || act.error} onRetry={reload} />
       <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
-        <Card className="min-h-[400px]">
+        <Card className="min-h-[400px]" tour="team-feed">
           {loading && !data && <Loading />}
           {data && items.length === 0 && <div className="grid place-items-center p-10 text-sm text-slate-500"><MessagesSquare size={22} className="mb-2" />Nada por aqui ainda. Rode o turno do Agente de Atendimento (Atendimento › Visão) ou proponha uma ação.</div>}
           <ul className="space-y-3">

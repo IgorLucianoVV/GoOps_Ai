@@ -103,6 +103,8 @@ Rotas de execução de ações são **simuladas** (`execution_mode: simulated`).
 | POST | `/api/agents/instructions/{slot}/publish` | agents:configure | `ops.instruction_publish` |
 | POST | `/api/agents/custom/test` | agents:execute + semantic:write no setor | `ops.custom_agent_test` (sem efeito colateral) |
 | POST | `/api/agents/custom/{key}/enabled` | semantic:write no setor | `ops.custom_agent_enabled` |
+| GET | `/api/agents/validation` | agents:read | `ops.agents_validation` (último relatório) |
+| POST | `/api/agents/validation/run` | agents:execute | `ops.agents_validation_run` (ambiente isolado, processo separado) |
 | POST | `/api/agents/instructions/{slot}/reset` | agents:configure | `ops.instruction_reset` |
 | POST | `/api/agents/instructions/{slot}/restore` | agents:configure | `ops.instruction_restore` |
 | GET | `/api/agents/{agent_key}` | agents:read | `ops.agent_detail` |

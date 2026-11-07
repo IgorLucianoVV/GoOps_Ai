@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import CommandPalette from "@/components/CommandPalette";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
+import { PresentationProvider } from "@/features/presentation/PresentationMode";
 import { Loading } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -24,6 +25,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
   if (loading || !user) return <div className="grid h-screen place-items-center"><Loading label="Verificando sessão…" /></div>;
   return (
+    <PresentationProvider>
     <div className="flex h-screen overflow-hidden">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[90] focus:rounded focus:bg-brand-600 focus:px-3 focus:py-2 focus:text-[#FFFFFF]">Pular para o conteúdo</a>
       <div className={menu ? "fixed inset-0 z-40 lg:static lg:z-auto" : "hidden lg:block"}>
@@ -38,5 +40,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>
+    </PresentationProvider>
   );
 }

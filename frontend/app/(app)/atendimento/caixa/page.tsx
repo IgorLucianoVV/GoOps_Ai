@@ -82,19 +82,19 @@ function SupportInbox() {
           <ConversationList items={list.data?.items || []} total={list.data?.total || 0} selected={convId} onSelect={(id) => select(id)}
             queue={queue} setQueue={setQueue} q={q} setQ={setQ} channel={channel} setChannel={setChannel} loading={list.loading} />
         </aside>
-        <section className="min-h-0 min-w-0">
+        <section className="min-h-0 min-w-0" data-tour="chat">
           {!convId && <div className="grid h-full place-items-center text-sm text-slate-500"><span className="flex items-center gap-2"><MessagesSquare size={18} /> Selecione uma conversa</span></div>}
           {convId && conv.loading && !conv.data && <Loading />}
           {conv.data && <ChatThread conv={conv.data} selectedCase={caseId} onSelectCase={(k) => select(convId!, k)} canWrite={write}
             suggestion={suggestion} busy={act.busy} onSend={send} onNote={note} onAi={ai} onClose={closeCase} />}
         </section>
-        <aside className="hidden min-h-0 border-l border-ink-700 xl:block">
+        <aside className="hidden min-h-0 border-l border-ink-700 xl:block" data-tour="case-panel">
           {kase.data && <CasePanel c={kase.data} intents={cat.data?.intents || {}} canWrite={write} busy={act.busy}
             onPropose={propose} onUpdate={update} onRetriage={retriage} onReload={reloadAll} />}
           {!kase.data && <div className="p-6 text-sm text-slate-500">Selecione um atendimento para ver triagem, veracidade, pedido e ações.</div>}
         </aside>
       </div>
-      {kase.data && <div className="mt-4 xl:hidden"><div className="card p-0">
+      {kase.data && <div className="mt-4 xl:hidden"><div className="card p-0" data-tour="case-panel">
         <CasePanel c={kase.data} intents={cat.data?.intents || {}} canWrite={write} busy={act.busy} onPropose={propose} onUpdate={update} onRetriage={retriage} onReload={reloadAll} />
       </div></div>}
     </>

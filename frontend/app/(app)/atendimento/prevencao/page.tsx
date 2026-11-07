@@ -61,7 +61,7 @@ export default function PreventionPage() {
             ]} />
           </Card>
 
-          <Card title={<span className="inline-flex items-center gap-1.5"><BellRing size={15} /> Aviso proativo de atraso</span>}
+          <Card tour="proactive" title={<span className="inline-flex items-center gap-1.5"><BellRing size={15} /> Aviso proativo de atraso</span>}
             subtitle="Pedidos em aberto com risco médio/alto de atraso (Gold de Logística) que ainda não geraram contato."
             actions={can("support:write") && p.count > 0 && <button className="btn-primary" disabled={act.busy} onClick={notify}>Propor aviso a {fmt.num(p.count)} clientes</button>}>
             {p.count === 0 && <p className="text-sm text-slate-400">Nenhum pedido em risco sem contato no momento.</p>}

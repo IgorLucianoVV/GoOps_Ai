@@ -1,10 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Cpu, ShieldCheck, Zap } from "lucide-react";
+import { useTourTab } from "@/features/presentation/events";
+import { Cpu, Hand, Scale, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { fmt } from "@/components/labels";
 import { Badge, Card, DataTable, ErrorBox, JsonBlock, Kpi, Loading, PageHeader, StatusBadge, Tabs } from "@/components/ui";
 import InstructionEditor from "@/features/agents/InstructionEditor";
+import { AgentValidationSummary } from "@/features/agents/validation";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -14,8 +16,10 @@ function List({ items }: { items?: string[] }) {
 
 export default function AgentPage({ params }: { params: { key: string } }) {
   const { data, error, loading, reload } = useApi<any>(`/agents/${params.key}`);
+  const validation = useApi<any>("/agents/validation");
   const { can } = useAuth();
   const [tab, setTab] = useState("overview");
+  useTourTab(setTab, ["overview", "decides", "instructions", "activity"]);
   const canEdit = can("agents:configure");
   const p = data?.profile || {};
   const h = data?.health || {};
@@ -28,11 +32,12 @@ export default function AgentPage({ params }: { params: { key: string } }) {
       {loading && !data && <Loading />}
       {data && (
         <>
-          <Tabs active={tab} onChange={setTab} tabs={[
+          <div data-tour="agent-tabs"><Tabs active={tab} onChange={setTab} tabs={[
             { key: "overview", label: "Visão geral" },
+            { key: "decides", label: "Como decide" },
             { key: "instructions", label: `Instruções de IA (${data.instructions.length})${drafts ? ` · ${drafts} rascunho(s)` : ""}` },
             { key: "activity", label: `Atividade (${data.runs})` },
-          ]} />
+          ]} /></div>
 
           {tab === "overview" && (
             <div className="space-y-5">
@@ -63,8 +68,68 @@ export default function AgentPage({ params }: { params: { key: string } }) {
             </div>
           )}
 
+          {tab === "decides" && data.decision_logic && (
+            <div className="space-y-5">
+              <Card tour="agent-decides" title={<span className="inline-flex items-center gap-2"><Scale size={15} aria-hidden /> Como este agente decide</span>}
+                subtitle="Regras e fórmulas implementadas no código. Os parâmetros abaixo são os que estão valendo agora.">
+                <p className="text-sm text-slate-200">{data.decision_logic.summary}</p>
+                <ol className="mt-4 space-y-3">
+                  {(data.decision_logic.steps || []).map((st: any, i: number) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-semibold text-white">{i + 1}</span>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-100">{st.title}</div>
+                        <code className="mt-1 block whitespace-pre-wrap break-words rounded bg-ink-950 px-2 py-1 text-xs text-slate-300">{st.rule}</code>
+                        <p className="mt-1 text-sm text-slate-400">{st.decides}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </Card>
+              <div className="grid gap-4 lg:grid-cols-2">
+                <Card title="Parâmetros em vigor">
+                  <table className="w-full text-sm">
+                    <tbody>{(data.decision_logic.params || []).map((x: any) => (
+                      <tr key={x.label} className="border-b border-ink-800 last:border-0">
+                        <td className="py-1.5 pr-3 text-slate-400">{x.label}</td>
+                        <td className="py-1.5 pr-3 font-medium text-slate-100">{String(x.value ?? "—")}</td>
+                        <td className="py-1.5 text-xs text-slate-500">{x.where}</td></tr>))}</tbody>
+                  </table>
+                </Card>
+                <div className="space-y-4">
+                  <Card title={<span className="inline-flex items-center gap-2"><Hand size={15} aria-hidden /> Quando passa para uma pessoa</span>}>
+                    <List items={data.decision_logic.human} /></Card>
+                  <Card title={<span className="inline-flex items-center gap-2"><Sparkles size={15} aria-hidden /> Uso de IA</span>}>
+                    <p className="text-sm text-slate-300">{data.decision_logic.ai}</p></Card>
+                </div>
+              </div>
+              {data.decision_logic.actions && (
+                <Card title="Ações que pode propor (catálogo)">
+                  <DataTable rows={data.decision_logic.actions} columns={[
+                    { key: "title", label: "Ação" }, { key: "risk", label: "Risco", render: (r: any) => <Badge tone={r.risk === "high" ? "red" : r.risk === "medium" ? "amber" : "green"}>{({ high: "alto", medium: "médio", low: "baixo" } as any)[r.risk]}</Badge> },
+                    { key: "areas", label: "Áreas", render: (r: any) => r.areas.join(", ") }, { key: "approval", label: "Aprovação humana" },
+                  ]} />
+                </Card>
+              )}
+              <Card title="Decisões recentes" subtitle="Exemplos reais registrados por este agente, com os números e motivos usados.">
+                {data.recent_decisions?.length ? (
+                  <ul className="space-y-2 text-sm">{data.recent_decisions.map((d: any, i: number) => (
+                    <li key={i} className="rounded-lg border border-ink-700 p-2">
+                      <div className="flex flex-wrap items-center gap-2"><span className="font-medium text-slate-100">{d.title}</span>
+                        <span className="text-xs text-slate-500">{fmt.date(d.at)}</span>
+                        {d.link && <Link className="text-xs text-brand-500 underline underline-offset-2" href={d.link}>abrir</Link>}</div>
+                      <p className="mt-0.5 text-slate-300">{d.decision}</p></li>))}</ul>
+                ) : <p className="text-sm text-slate-500">Nenhuma decisão registrada ainda. Rode o ciclo de monitoramento ou a validação ponta a ponta.</p>}
+              </Card>
+              <Card title="Validação ponta a ponta" subtitle="Cada regra recalculada de forma independente sobre dados sintéticos gerados num ambiente isolado.">
+                {validation.data ? <AgentValidationSummary report={validation.data} agentKey={params.key} />
+                  : <p className="text-sm text-slate-500">Ainda não há validação. <Link className="text-brand-500 underline" href="/agents/validacao">Rodar agora</Link></p>}
+              </Card>
+            </div>
+          )}
+
           {tab === "instructions" && (
-            <section aria-label="Instruções de IA" className="space-y-3">
+            <section aria-label="Instruções de IA" className="space-y-3" data-tour="agent-instructions">
               <p className="text-sm text-slate-400">
                 {data.instructions.length
                   ? "Ajuste como a IA escreve em cada tarefa. O fluxo é Editar → Testar → Publicar: o rascunho não afeta os agentes, o teste usa dados de exemplo sem gravar nada, e só a versão publicada vale. Regras, números, ações do catálogo e aprovações continuam no núcleo determinístico."

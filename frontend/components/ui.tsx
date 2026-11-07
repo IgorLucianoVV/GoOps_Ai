@@ -19,9 +19,9 @@ export function PageHeader({ title, subtitle, actions, kicker }: { title: string
   );
 }
 
-export function Card({ title, children, className, actions, subtitle }: { title?: React.ReactNode; children: React.ReactNode; className?: string; actions?: React.ReactNode; subtitle?: string }) {
+export function Card({ title, children, className, actions, subtitle, tour }: { title?: React.ReactNode; children: React.ReactNode; className?: string; actions?: React.ReactNode; subtitle?: string; tour?: string }) {
   return (
-    <section className={clsx("card p-4", className)}>
+    <section className={clsx("card p-4", className)} data-tour={tour}>
       {(title || actions) && (
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>

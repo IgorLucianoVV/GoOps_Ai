@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Pause, Play, Plus, Search, Sparkles } from "lucide-react";
+import { Pause, Play, Plus, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { DOMAIN_LABEL, fmt } from "@/components/labels";
 import { Badge, Card, Empty, ErrorBox, JsonBlock, Kpi, Loading, PageHeader, StatusBadge } from "@/components/ui";
 import { HealthChips } from "@/features/agents/parts";
@@ -47,6 +47,7 @@ export default function AgentsPage() {
           {can("agents:execute") && <>
             <button className="btn-ghost" disabled={action.busy} onClick={() => cycle(false)}>Somente monitorar</button>
             <button className="btn-ghost" disabled={action.busy} onClick={() => cycle(true)}><Play size={14} /> Ciclo completo</button>
+            <Link className="btn-ghost" href="/agents/validacao"><ShieldCheck size={14} /> Validação ponta a ponta</Link>
             <Link className="btn-primary" href="/agents/novo"><Plus size={14} /> Novo agente</Link>
           </>}
         </>} />
@@ -54,7 +55,7 @@ export default function AgentsPage() {
       {out && <Card className="mb-5" title="Resultado do ciclo"><JsonBlock value={out} maxHeight={200} /></Card>}
       {loading && !data && <Loading />}
       {r && (
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5" data-tour="agents-kpis">
           <Kpi label="Agentes" value={fmt.num((data?.length || 0) + (custom.data?.length || 0))} hint={`${data?.length || 0} nativos · ${custom.data?.length || 0} personalizados${drafts ? ` · ${drafts} rascunho(s)` : ""}`} />
           <Kpi label="Resolvido sem LLM" value={fmt.pct(r.pct_without_llm)} hint="nível 0 — regras e estatística" tone="good" />
           <Kpi label="Com IA (níveis 1–3)" value={fmt.pct((r.pct_small_model || 0) + (r.pct_economy_model || 0) + (r.pct_advanced_model || 0))} hint={`${r.fallbacks_to_deterministic} contingências sem IA`} />

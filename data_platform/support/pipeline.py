@@ -87,8 +87,9 @@ AGENTS = [
     ("sup_monitor_recontato", "Monitor de recontato", "metric_monitor",
      {"metric_key": "SUP_TAXA_RECONTATO", "rule": "above", "threshold": 25, "segment_by": "channel", "min_n": 30,
       "severity": "medium", "category": "customer_service"}, 1440),
-    ("sup_causas_contatos", "Causas da variação de contatos", "driver_analysis",
-     {"metric_key": "SUP_CONTATOS", "dimensions": ["intent_label", "carrier", "channel"], "min_n": 10}, 10080),
+    # decomposição só faz sentido para taxa/média/NPS (contagem nunca rodava — achado da validação ponta a ponta)
+    ("sup_causas_contatos", "Causas da variação do recontato", "driver_analysis",
+     {"metric_key": "SUP_TAXA_RECONTATO", "dimensions": ["intent_label", "carrier", "channel"], "min_n": 10}, 10080),
     ("sup_resumo", "Resumo do atendimento", "summary",
      {"metric_keys": ["SUP_CONTATOS", "SUP_TAXA_AUTOMACAO", "SUP_TAXA_RECONTATO", "SUP_HORAS_ECONOMIZADAS"],
       "use_ai": False}, 10080),
@@ -120,7 +121,10 @@ def seed_support(db: Database, with_demo_source: bool = True) -> bool:
                                                               jdump(WIDGETS), ts, ts))
         created = True
     for key, name, template, cfg, interval in AGENTS:
-        if not db.fetchone("SELECT id FROM custom_agents WHERE key = ?", (key,)):
+        old = db.fetchone("SELECT id, config FROM custom_agents WHERE key = ?", (key,))
+        if old and key == "sup_causas_contatos" and (jload(old["config"], {}) or {}).get("metric_key") == "SUP_CONTATOS":
+            db.execute("UPDATE custom_agents SET name = ?, config = ?, updated_at = ? WHERE key = ?", (name, jdump(cfg), ts, key))
+        if not old:
             db.execute("INSERT INTO custom_agents (id, key, domain, name, template, config, interval_minutes, enabled, "
                        "created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'system', ?, ?)",
                        (new_id("CAG"), key, DOMAIN, name, template, jdump(cfg), interval, ts, ts))

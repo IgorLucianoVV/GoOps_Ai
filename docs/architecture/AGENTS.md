@@ -123,3 +123,24 @@ Criados em **Agentes de IA › Novo agente** (ou via `POST /api/agents/custom`),
   ferramentas que ela pediu (argumentos e resultado resumido) → decisão de alerta → ações do sistema.
 - **Saúde (7 dias)** por agente: execuções, falhas, % de contingência sem IA, alertas e custo; filtros na lista e
   pausar/retomar sem excluir.
+
+## Transparência: “Como decide” (`agents/decisions.py`)
+Aba em cada agente nativo com: resumo, passos de decisão (regra/fórmula + o que decide), **parâmetros em vigor** lidos da
+configuração atual (com onde mudar), quando passa para uma pessoa, uso de IA, ações do catálogo (risco, áreas,
+aprovação) e **decisões recentes reais** (números e motivos registrados), além do resultado da última validação.
+
+## Validação ponta a ponta (`agents/walkthrough.py` · `python manage.py validate-agents [--with-ai]`)
+Banco e Lakehouse **temporários** (nada da aplicação é alterado; pela tela roda em processo separado). Gera o cenário
+sintético `full` e, quando falta dado, **casos sob medida** (prompt injection, foto anterior à entrega, dúvida
+informativa por WhatsApp e por Reclame Aqui, pico de reclamações por transportadora). Executa cada fluxo com as funções de
+produção e **recalcula cada decisão de forma independente**: queda de NPS e severidade, deduplicação, sensibilidade ao
+limiar, soma da decomposição = ΔNPS, confiança das hipóteses, regra de causa provável, plano coerente com a hipótese,
+política de aprovação, bloqueios (agente/domínio errado/leitor/execução sem aprovação), retomada do fluxo e execução
+simulada, veracidade de todos os contatos, matriz automático × pessoa, acerto contra o gabarito, ações do atendimento,
+turno com pico → incidente → Investigação, agentes de setor, agente com instruções (teste sem efeito) e plano B de IA.
+Relatório em `var/validation/latest.json` e `.md`; tela *Agentes de IA › Validação ponta a ponta*.
+
+Achados corrigidos na primeira execução: ação do atendimento dispensada de aprovação ficava “aprovada” sem ser
+executada (agora o Agente de Atendimento executa, como na triagem automática); agente de setor “Causas da variação de
+contatos” decompunha uma contagem e nunca rodava (passou a usar a taxa de recontato; a configuração agora recusa
+contagens/somas nesse modelo).

@@ -35,7 +35,8 @@ Cada entrega passou por: suíte de testes (100+ testes), build do frontend e cap
 As **instruções** de cada tarefa de IA são editáveis em *Agentes de IA* (versionadas e auditadas); as regras fixas de
 cada tarefa e o guarda do roteador não são editáveis. Toda mudança passa por rascunho e pode ser **testada antes de
 publicar** (prompt exato visível + verificação de números fora das evidências); agentes personalizados têm teste sem
-efeito colateral, critérios de aceite e rastro passo a passo de cada execução.
+efeito colateral, critérios de aceite e rastro passo a passo de cada execução. A aba **Como decide** mostra as
+regras e parâmetros em vigor de cada agente, e a **validação ponta a ponta** recalcula cada decisão sobre dados gerados.
 
 **Números nunca vêm do modelo:** métricas, veracidade, roteamento e ações são calculados por regras auditáveis.
 Custos e tokens de cada chamada ficam em `llm_calls` (o AI Proxy informa tokens; o Jev informa custo estimado).

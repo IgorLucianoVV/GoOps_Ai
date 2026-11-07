@@ -160,6 +160,11 @@ Menu **Agentes de IA**:
 - **Testar agente** (no formulário e na página do agente): roda com dados reais sem abrir incidente, propor ação ou
   publicar no canal, e mostra os critérios e o **passo a passo** (instrução, chamadas ao modelo, ferramentas, decisão).
 - Lista com busca, filtros (tipo, setor, situação), **saúde dos últimos 7 dias** e pausar/retomar.
+- **Como decide** (aba em cada agente nativo): regras e fórmulas, parâmetros em vigor, quando passa para uma pessoa,
+  ações possíveis e decisões recentes reais.
+- **Validação ponta a ponta** (*Agentes de IA › Validação ponta a ponta* ou `python manage.py validate-agents`): gera
+  dados sintéticos num ambiente isolado (inclusive casos sob medida como prompt injection e foto anterior à entrega),
+  executa todos os fluxos e recalcula cada decisão. `--with-ai` usa os modelos configurados.
 Bancos existentes: `python manage.py init` aplica as migrações `0011` e `0012`.
 
 ## Setores dinâmicos (novo setor sem código)
