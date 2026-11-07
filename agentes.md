@@ -6,6 +6,36 @@ Se uma mudança contrariar algo daqui, pare e pergunte antes.
 
 ---
 
+## 0. Em um minuto (para quem chega agora)
+
+**O problema (Desafio 1):** milhares de contatos por WhatsApp, e-mail e Reclame Aqui; cada pedido exige consultar
+vários sistemas; parte das reclamações não procede; o time precisa decidir o que automatizar; e clientes voltam porque
+ninguém avisou.
+
+**A solução:** um **colega digital do atendimento**, não um chatbot. Ele resolve sozinho o que é informativo, com dados
+do pedido; **levanta a mão** (pede aprovação com evidências) quando a ação mexe em pedido, pagamento ou estoque;
+**chama outros agentes** quando o problema é maior que um caso (pico de reclamações por transportadora → incidente →
+Investigação → Resolução); e **mora onde o time conversa** (canal no app, Telegram com botões de aprovar, avisos no
+Slack). A pessoa decide sempre o que é crítico, e tudo fica auditado.
+
+**Por que o desenho é sólido (com evidência, não promessa):**
+
+| Afirmação | Como verificar |
+|---|---|
+| Funciona de ponta a ponta: mensagem → triagem → visão 360 → veracidade → automático ou pessoa → resposta → ação → aprovação → execução simulada → validação | `python manage.py test` (129 testes passando, 7 pulados por dependerem das planilhas da Gocase) |
+| O que a tela diz é o que o código faz | `python manage.py validate-agents`: 33/33 decisões recalculadas de forma independente, num ambiente isolado com casos-limite (tentativa de manipulação, foto anterior à entrega) |
+| Autonomia real, com a pessoa no controle | Turno do agente (`agents/support/shift.py`) roda sozinho; ações críticas exigem aprovação por regra de política, não configurável |
+| IA onde agrega, com proteções e custo registrado | Jev desempata a intenção só com confiança ≥ 0,7; resumos não podem trazer números novos; sem modelo, há contingência determinística registrada; `llm_calls` guarda tokens e custo |
+| Transparência | Aba "Como decide" de cada agente (parâmetros em vigor e decisões reais), `docs/IA_TRANSPARENCIA.md`, `docs/architecture/COLEGA_DIGITAL.md` (mapa 360°) |
+| Pronto para publicar | `render.yaml` (frontend público, API privada, disco, PostgreSQL), testado contra PostgreSQL |
+
+**O que é real e o que é simulado:** agentes, regras, banco, canal do time (Telegram), AI Proxy e validação são reais.
+Os contatos de atendimento são **sintéticos** e a execução das ações nos sistemas externos é **simulada**; os canais
+(WhatsApp Cloud API, e-mail, Reclame Aqui) e o ERP entram trocando conectores. Isso é dito na tela (selo
+"sintético") e deve ser dito em qualquer apresentação.
+
+---
+
 ## 1. O que é o projeto
 
 **GoOps AI** é uma plataforma de operações com agentes de IA supervisionados, adaptada ao **Desafio 1 – Atendimento ao
@@ -338,3 +368,68 @@ Arquivos de teste novos/alterados: `backend/tests/test_agent_config.py`, `test_a
 - Não implementados (baixo peso para a demo): gatilhos por evento, transformar execução em caso de teste, regressão
   agendada, ajuda da IA para escrever a missão.
 - Slots sem prévia completa: `support_classify` (Jev) mostra só a instrução no teste.
+
+---
+
+## 7. Histórico — sessão de 07/11/2026 (adaptação ao Desafio 1, colega digital, pitch e publicação)
+
+Sessão conduzida com um assistente de IA (Claude, no Cowork) sobre a pasta do projeto; as decisões de produto foram do
+Igor. Registro do que foi feito, por quê e como verificar.
+
+### 7.1 Pedidos e decisões, em ordem
+1. **Segurança antes de tudo:** conector HTTP com allowlist de credenciais e bloqueio de SSRF/redirect; limite de
+   requisições por IP real atrás de proxy confiável e no login; revogação de sessão (`token_version`); estimativa de
+   custo conservadora sem preço configurado; Postgres só em 127.0.0.1 no compose.
+2. **Módulo de Atendimento completo com dados sintéticos** (migração 0008): triagem, veracidade explicável, matriz
+   automático × pessoa, respostas, ações do catálogo, prevenção de recontato, visão geral.
+3. **Conversas como no WhatsApp**, com base em pesquisa de mercado (Zendesk, Intercom, Blip, Octadesk, regra de 24 h da
+   Meta, Reclame Aqui/HugMe) (migração 0009): uma conversa por cliente e canal, atendimentos separados por divisor,
+   continuação × caso novo, cortesia não reabre, recontato só depois do encerramento, encerramento por inatividade,
+   notas internas e indicador da janela de 24 h.
+4. **UX:** um único botão "Encerrar atendimento" (com confirmação) e "Enviar" separado; painel do caso em abas.
+5. **Critérios da banca → "agente colega de trabalho"** (migração 0010): AI Proxy Gogroup (Jev para desempate e
+   resumo do caso com guarda contra números novos), canal do time (app/Telegram/Slack) com aprovação por botão,
+   turno autônomo e documentos de transparência, 360° e roteiro (`docs/`).
+6. **"Pergunte ao GoOps"** responde perguntas gerais sem chutar métrica; com modelo, aceita resposta conceitual sem
+   ferramenta desde que não traga números.
+7. **Modo apresentação** (botão Apresentar): tour de 14 etapas pelas páginas reais, com valor, critério, números ao
+   vivo, fala sugerida e ações só por clique (`frontend/features/presentation/`).
+8. **Publicação no Render:** `render.yaml`, entrypoint sem privilégios, carga inicial em segundo plano
+   (`AUTO_LOAD_DEMO_ASYNC`), guia em `docs/deploy/RENDER.md`. Recomendação: plano pago só nos dias do evento
+   (cobrança por segundo).
+
+### 7.2 Erros encontrados e corrigidos (a IA verificada e corrigida)
+- Vínculo contato → pedido escolhia o pedido errado (≈76%) → pontuação por assunto e produto (≈98% contra o gabarito
+  sintético).
+- "Não recebi atualização" lido como "pedido não recebido" → exceção na regra.
+- Mensagens geradas com "Pedido" solto no fim (apontado pelo Igor numa captura) → limpeza no gerador.
+- Mensagens de sistema no relógio errado → relógio da conversa.
+- Reconstrução de dados antigos duplicava registros → versões antigas ignoradas.
+- `create_incident` devolve `{"incident": …}` → corrigido no turno.
+- Assistente respondia NPS para qualquer pergunta sem modelo → resposta honesta.
+- Uma entrega anterior de `agents/ask.py` chegou desatualizada na pasta → regravado e conferido; desde então toda
+  entrega é conferida pelo tamanho do arquivo no destino.
+- **PostgreSQL:** `%` literal no SQL (ex.: `LIKE '%(demo)'`) quebrava a segunda inicialização → o adaptador escapa
+  `%` (`goops_core/db.py`). Achado só porque o fluxo foi testado no mesmo banco do Render.
+
+### 7.3 Como verificar
+```bash
+python manage.py init && python manage.py pipeline
+python manage.py test               # 129 passam
+python manage.py validate-agents    # 33/33
+cd frontend && npm run build
+```
+Tour: entrar como admin e clicar em **Apresentar**. Publicação: `docs/deploy/RENDER.md`.
+
+### 7.4 Pendências e pontos de atenção (parecer interno, no papel da banca)
+- **README:** o topo ainda descreve a plataforma de dados original; reescrever para o Desafio 1 (problema, solução,
+  real × simulado, onde cada critério aparece). É o que um leitor automático lê primeiro.
+- **Métricas:** "acurácia de intenção" e "falsas sinalizadas" são medidas contra o gabarito do gerador sintético;
+  apresentar como consistência com cenários sintéticos. "Horas poupadas" depende das premissas editáveis.
+- **Mostrar a IA:** na demo, deixar visível um momento de decisão ou texto produzido pela IA, com custo.
+- **Canal do time:** confirmar se o atendimento da Gocase usa Telegram, Slack ou outro; no Slack hoje só há avisos.
+- **Tempo do pitch:** o tour tem 14 etapas (≈ 6–7 min); cortar se o pitch for de 3 min.
+- **Caso de negócio:** acrescentar ROI em reais com premissas explícitas.
+- **Publicação:** ainda não testada no Render de verdade (imagens Docker não puderam ser construídas no ambiente da
+  sessão); publicar na véspera, ensaiar e ter vídeo de reserva.
+- `apresentacao.md`, slide 9: trocar "duplicação de dados" por "vínculo contato → pedido de ≈76% para ≈98%".

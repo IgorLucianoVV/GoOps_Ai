@@ -1,13 +1,77 @@
-# GoOps AI
+# GoOps AI — o colega digital do Atendimento ao Cliente
+
+**Desafio 1 · Atendimento ao Cliente (case Gocase).** Um agente de IA que trabalha como colega do time de atendimento:
+resolve sozinho o que é simples, **levanta a mão** quando não deve decidir, **chama outros agentes** quando o problema é
+maior que um caso e **mora onde o time conversa**. A pessoa decide sempre o que é crítico, e tudo fica auditado.
+
+> **Todos os dados deste repositório são sintéticos.** Contatos de WhatsApp, e-mail e Reclame Aqui, pedidos, entregas e
+> avaliações são gerados para a demonstração e aparecem na tela com o selo **"sintético"**. Nenhum dado de cliente da
+> Gocase está versionado. A execução de ações em sistemas externos (ERP, financeiro, portal da transportadora) é
+> **simulada**. Os números abaixo descrevem a demonstração, não resultados de produção.
+
+## O problema e a resposta
+
+| Dor do desafio | O que o GoOps faz |
+|---|---|
+| Milhares de contatos em vários canais | Caixa unificada estilo WhatsApp: uma conversa por cliente e canal, com cada atendimento separado. Assuntos informativos são respondidos na hora com dados do pedido |
+| Um pedido envolve vários sistemas | Visão 360 do contato (pedido, entrega, transportadora, histórico, NPS) e ações de um clique: chamado, troca, reenvio, reembolso, cancelamento |
+| Nem toda reclamação procede | Score de **veracidade** explicável (entrega registrada, prazo, data da foto × data da entrega, reclamações em série). Quando os dados não sustentam, vai para uma pessoa com as evidências — **o agente nunca nega sozinho** |
+| O que automatizar e o que é da pessoa | Matriz configurável: Reclame Aqui, urgência alta, recontato, valor alto, intenção incerta e ações em pedido/pagamento/estoque sempre passam por uma pessoa |
+| Clientes que voltam | Recontato e contatos evitáveis medidos, causas por assunto × transportadora × produto e **aviso proativo** de atraso |
+
+## O agente como colega de trabalho
+
+| Comportamento | Como aparece | Onde no código |
+|---|---|---|
+| Age nos sistemas | Abre chamado na transportadora sozinho; propõe troca, reenvio e reembolso com evidências (execução simulada) | `agents/support/` |
+| Levanta a mão | Ações críticas exigem aprovação por regra de política, não configurável | `goops_core/policies.py` |
+| Chama outros agentes | Pico de reclamações por transportadora → incidente → Supervisor → Investigação → Resolução → Validação | `agents/support/shift.py` |
+| Trabalha sozinho | Turno autônomo: processa a fila, lembra e encerra por inatividade, alerta SLA, cobra aprovações, manda o resumo do dia | `agents/support/shift.py`, agendador |
+| Mora onde o time conversa | Canal do time no app, **Telegram** com botões Aprovar/Rejeitar e comandos, avisos no Slack | `agents/team_channel.py` |
+
+**IA onde agrega, com proteções:** o Jev (AI Proxy Gogroup) desempata a intenção só com confiança ≥ 0,7; um LLM resume o
+caso para quem assume, sem poder acrescentar números; instruções de IA editáveis passam por rascunho → teste → publicação;
+sem modelo, tudo segue por regras, com a contingência registrada; tokens e custo de cada chamada ficam guardados.
+Modelos DeepSeek são bloqueados.
+
+## Na demonstração (dados sintéticos, cenário `full`)
+
+≈ 1.780 atendimentos em ≈ 1.540 conversas · ≈ 38% resolvidos sem pessoa · ≈ 45% do esforço manual poupado (premissas
+de minutos por assunto, editáveis em *Configurações › Atendimento*) · recontato ≈ 13%. A classificação de intenção e a
+detecção de reclamações falsas são conferidas contra o **gabarito do próprio gerador sintético** (≈ 99% e ≈ 98% de
+concordância): isso mostra que as regras fazem o que prometem nos cenários gerados, não é uma medida de acurácia em
+dados reais.
+
+## Como verificar
+
+| O quê | Como |
+|---|---|
+| Funciona de ponta a ponta | `python manage.py test` — 129 testes |
+| A tela descreve o que o código faz | `python manage.py validate-agents` — 33/33 decisões recalculadas de forma independente num ambiente isolado, com casos-limite (tentativa de manipulação, foto anterior à entrega) |
+| Como cada agente decide | *Agentes de IA › (agente) › Como decide*: regras, parâmetros em vigor e decisões recentes |
+| Tour guiado do pitch | Botão **Apresentar** na barra superior (14 etapas pelas telas reais) |
+| Como a IA foi usada e corrigida | [`docs/IA_TRANSPARENCIA.md`](docs/IA_TRANSPARENCIA.md) |
+| Visão 360° da área | [`docs/architecture/COLEGA_DIGITAL.md`](docs/architecture/COLEGA_DIGITAL.md) |
+| Roteiro de demo | [`docs/pitch/ROTEIRO_DEMO.md`](docs/pitch/ROTEIRO_DEMO.md) |
+| Regras para quem for alterar o código | [`agentes.md`](agentes.md) |
+
+**O que é real × simulado:** agentes, regras, banco, Lakehouse, canal do time (Telegram) e chamadas ao AI Proxy são reais.
+Os dados são sintéticos; canais de cliente (WhatsApp Cloud API, e-mail, Reclame Aqui/HugMe), ERP e financeiro estão
+representados por conectores configuráveis e simuladores — ligar os sistemas reais troca só essas peças.
+
+## Plataforma base
+
+Por baixo do Atendimento há uma plataforma de dados e agentes que o colega usa:
 
 **Autonomous Business Operations / AI-Powered Data Intelligence Platform**
 
 GoOps AI conecta fontes empresariais, organiza os dados em um **Data Lakehouse governado** (Bronze → Silver → Gold Corporate + Domain → Semântica), padroniza indicadores num **catálogo semântico híbrido** e usa **agentes de IA supervisionados** para detectar anomalias, investigar causas com evidências, recomendar ações e — com aprovação humana — executá-las (nesta versão, em modo **simulado**).
 
-> **Seed padrão: planilhas reais do case Gocase** (`data/seed/gocase/` — NPS, Pedidos e Entregas), carregadas pelo conector
-> `file` com o perfil de mapeamento `gocase_xlsx`. Resultado de referência: **NPS 87,52** (8.869 avaliações; 8.111 promotores,
-> 409 neutros, 349 detratores). Também há cenários **sintéticos** (`full`, com anomalias e um incidente encenado, e `basic10`),
-> marcados como demonstração. Os contratos das APIs reais ainda não foram confirmados; os conectores HTTP são configuráveis.
+> **Dados:** sem as planilhas do case (que não estão no repositório, ver `.gitignore`), a plataforma usa
+> automaticamente o cenário **sintético** `full` (com anomalias e um incidente encenado); há também o `basic10`. Se as
+> planilhas da Gocase forem colocadas localmente em `data/seed/gocase/`, o cenário `gocase` usa NPS, pedidos e entregas
+> reais, mas os contatos de atendimento continuam sintéticos. Os contratos das APIs reais ainda não foram confirmados; os
+> conectores HTTP são configuráveis.
 
 ## Início rápido
 
@@ -45,7 +109,7 @@ Scripts prontos: `infrastructure/scripts/dev.ps1` (Windows) e `dev.sh`.
 ### Usuários de demonstração
 `admin@`, `owner@` (Data Owner), `steward@`, `cx.owner@` (Domain Owner CX), `logistics.owner@` (Domain Owner Logística), `analyst@`, `viewer@` — todos `@goops.local`, mesma senha de demonstração.
 
-## Seed Gocase — o que observar
+## Seed Gocase — o que observar (só com as planilhas locais)
 - As planilhas não trazem datas de envio/previsão/entrega (só "Dias de entrega") nem pedidos em aberto. Para a visão
   completa, a seed inclui um **complemento sintético** (fontes `gocase_complemento_datas_entrega`,
   `gocase_demo_pedidos_transito`, `gocase_demo_entregas_transito`, todas `is_demo`):
@@ -62,7 +126,7 @@ Scripts prontos: `infrastructure/scripts/dev.ps1` (Windows) e `dev.sh`.
   mostrará hipóteses com z-score indicando que a diferença **não é estatisticamente significativa**.
 - Para a demonstração completa (incidente, aprovações, execução), use `demo-load --scenario full` (dados sintéticos).
 
-## Roteiro de demonstração (critérios de aceite)
+## Roteiro da plataforma base (dados, NPS e incidentes)
 1. **Integração** — *Data Lakehouse › Sources / Ingestion*: três fontes demo, execuções Bronze append-only.
 2. **Transformação** — *Silver* e *Data Quality*: regras, duplicidades, órfãos e quarentena.
 3. **Gold híbrida** — *Corporate Gold* e *Domain Gold* (CX, Logística, Produtos).
@@ -103,7 +167,7 @@ endpoint **OpenAI-compatível**.
    (LangGraph ou loop nativo). Sem os pacotes, Anthropic/OpenAI-compatível seguem pelo loop nativo e os demais aparecem
    como indisponíveis; sem modelo algum, responde o motor determinístico.
 
-## Atendimento ao Cliente (Desafio 1)
+## Atendimento ao Cliente (Desafio 1) — detalhes
 > **Visão 360° do colega digital:** `docs/architecture/COLEGA_DIGITAL.md` · **Transparência sobre IA:**
 > `docs/IA_TRANSPARENCIA.md` · **Roteiro de demo (3 min):** `docs/pitch/ROTEIRO_DEMO.md`
 
