@@ -1,0 +1,72 @@
+# Blueprint do Render — GoOps AI (Desafio 1).
+# Render › New › Blueprint › escolha este repositório. Guia completo: docs/deploy/RENDER.md
+#
+# Arquitetura: só o frontend é público (goops-web). A API (goops-api) é um serviço PRIVADO, acessível apenas pela
+# rede interna do Render: o Next.js repassa /api para ela (mesma origem, cookies de sessão e CSRF funcionando).
+# Todos os recursos na mesma região (rede privada só funciona dentro da região).
+services:
+  - type: pserv
+    name: goops-api
+    runtime: docker
+    region: virginia
+    plan: 1c-2g            # pandas + agentes + validação em processo separado; 0.5c-512mb funciona, mas fica no limite
+    dockerfilePath: ./infrastructure/docker/backend.Dockerfile
+    dockerContext: .
+    disk:                  # Lakehouse (Bronze/Silver/Gold) e relatórios de validação
+      name: goops-var
+      mountPath: /app/var
+      sizeGB: 1
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PORT
+        value: "8000"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: goops-db
+          property: connectionString
+      - key: LAKEHOUSE_PATH
+        value: /app/var/lakehouse
+      - key: DEMO_MODE
+        value: "true"
+      - key: AUTO_LOAD_DEMO
+        value: "true"
+      - key: AUTO_LOAD_DEMO_ASYNC
+        value: "true"
+      - key: DEMO_ADMIN_PASSWORD   # senha forte: vale para os usuários *@goops.local criados na 1ª subida
+        sync: false
+      - key: ACTION_EXECUTION_MODE
+        value: simulated
+      - key: SCHEDULER_ENABLED
+        value: "true"
+      - key: AI_PROXY_API_KEY      # opcional aqui: também pode ser salvo em Configurações › Modelos e chaves
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN    # opcional: também pode ser salvo em Configurações › Canal do time
+        sync: false
+
+  - type: web
+    name: goops-web
+    runtime: docker
+    region: virginia
+    plan: 0.5c-512mb
+    dockerfilePath: ./infrastructure/docker/frontend.Dockerfile
+    dockerContext: .
+    healthCheckPath: /login
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        value: /api
+      - key: API_INTERNAL_URL      # vira build arg: o rewrite /api -> API é fixado no build do Next.js
+        fromService:
+          name: goops-api
+          type: pserv
+          property: hostport
+
+databases:
+  - name: goops-db
+    region: virginia
+    plan: 0.1c-256mb
+    databaseName: goops
+    user: goops
+    ipAllowList: []          # sem acesso externo: só os serviços do Render

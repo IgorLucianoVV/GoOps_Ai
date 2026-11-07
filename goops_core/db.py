@@ -27,7 +27,8 @@ class Connection:
         self.dialect = dialect
 
     def _sql(self, sql: str) -> str:
-        return sql.replace("?", "%s") if self.dialect == "postgresql" else sql
+        # psycopg trata "%" como início de placeholder: "%" literal (ex.: LIKE '%x') vira "%%" antes de trocar ? por %s
+        return sql.replace("%", "%%").replace("?", "%s") if self.dialect == "postgresql" else sql
 
     def execute(self, sql: str, params: Iterable[Any] = ()) -> Any:
         cur = self.raw.cursor()

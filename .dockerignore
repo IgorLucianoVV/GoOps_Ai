@@ -1,0 +1,13 @@
+# Fora da imagem: segredos, estado local e artefatos de build
+.env
+.git
+.venv
+venv
+var
+**/__pycache__
+**/*.pyc
+.pytest_cache
+frontend/node_modules
+frontend/.next
+data/tests_tmp*
+data/seed/gocase/**/*.xlsx

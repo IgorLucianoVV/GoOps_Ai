@@ -144,6 +144,10 @@ em modo simulado e o contato é resolvido) → *Prevenção de recontato* → **
 Novos usuários de demonstração: `atendente@goops.local` (Atendente) e `atendimento.owner@goops.local` (Responsável pelo
 Atendimento), com a mesma senha de demo. Bancos existentes: `python manage.py init` e depois `python manage.py pipeline`.
 
+## Publicar (Render)
+O arquivo `render.yaml` cria frontend público, API privada, disco e PostgreSQL no Render (*New › Blueprint*).
+Passo a passo, custos e acessos da banca em [`docs/deploy/RENDER.md`](docs/deploy/RENDER.md).
+
 ## Agentes de IA — ver, ajustar instruções e criar novos
 Menu **Agentes de IA**:
 - **Agentes nativos**: cada um mostra *o que faz*, *quando roda*, *limites* e as **instruções de IA** de cada tarefa

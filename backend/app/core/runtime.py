@@ -23,7 +23,21 @@ def startup() -> dict:
             and not db.fetchone("SELECT key FROM datasets LIMIT 1"):
         log.info("Carregando seed inicial (planilhas Gocase se presentes; senão dados sintéticos). AUTO_LOAD_DEMO=false desativa.")
         scenario = default_scenario()
-        info["demo_load"] = {"scenario": scenario, "status": load_demo(db, lake, scenario, reset=False)["status"]}
+        if os.environ.get("AUTO_LOAD_DEMO_ASYNC", "false").lower() == "true":
+            # Hospedagem (ex.: Render): a carga inicial leva ~1 min no Postgres; em segundo plano a API já abre a porta
+            # e passa no health check. As telas mostram "sem dados" até terminar.
+            import threading
+
+            def _load() -> None:
+                try:
+                    res = load_demo(db, lake, scenario, reset=False)
+                    log.info("Seed inicial concluída em segundo plano (status=%s)", res["status"])
+                except Exception:  # noqa: BLE001 - registrado no log; a API segue no ar
+                    log.exception("Falha na seed inicial em segundo plano")
+            threading.Thread(target=_load, name="seed-inicial", daemon=True).start()
+            info["demo_load"] = {"scenario": scenario, "status": "running_in_background"}
+        else:
+            info["demo_load"] = {"scenario": scenario, "status": load_demo(db, lake, scenario, reset=False)["status"]}
     if info.get("demo_password_generated"):
         log.warning("Senha de demonstração gerada em var/demo_credentials.txt (apenas ambiente local).")
     log.info("GoOps AI iniciado (env=%s, db=%s, storage=%s)", settings.app_env, db.dialect, get_lakehouse().format)

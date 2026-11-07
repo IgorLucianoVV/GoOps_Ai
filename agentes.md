@@ -221,6 +221,9 @@ Tudo registrado: agent_runs, workflow_runs, llm_calls, audit, team_messages
 17a. Mudou uma tela do roteiro do pitch? Mantenha o `data-tour` do trecho destacado e confira o tour (botão
     **Apresentar**). Ações do tour só rodam por clique, usam as mesmas rotas e a mesma política de aprovação; números
     do cartão vêm da API (`live`), nunca escritos à mão.
+17b. SQL que roda no PostgreSQL: o adaptador troca `?` por `%s` e escapa `%` literal; não monte SQL com `%`
+    manual. Mudou algo de banco? Teste também com `DATABASE_URL=postgresql://…` (é o banco usado no Render).
+17c. Publicação: `render.yaml` + `docs/deploy/RENDER.md`. A API é serviço privado; só o frontend é público.
 
 **Qualidade e entrega**
 18. Adicione/atualize testes em `backend/tests/` para regra nova. `python manage.py test` e `npm run build` precisam
